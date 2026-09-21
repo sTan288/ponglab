@@ -11,7 +11,7 @@ set(SFML_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(lib/SFML)
 
 # Create the executable target
-add_executable(ponglab pong main.cpp)
+add_executable(ponglab pong_main.cpp)
 
 # Provide the include directories for SFML
 target_include_directories(ponglab PRIVATE lib/SFML/include)
