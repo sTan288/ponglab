@@ -38,4 +38,13 @@
 build/
 .vscode/
 
+lib/SFML/
+
+build/
+bin/
+*.exe
+*.obj
+*.o
+.vscode/
+
 # End of https://www.toptal.com/developers/gitignore/api/c++
