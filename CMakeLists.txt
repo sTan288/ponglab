@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(year10_game CXX)
+project(ponglab CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -11,10 +11,10 @@ set(SFML_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(lib/SFML)
 
 # Create the executable target
-add_executable(lab_1 main.cpp)
+add_executable(ponglab pong main.cpp)
 
 # Provide the include directories for SFML
-target_include_directories(lab_1 PRIVATE lib/SFML/include)
+target_include_directories(ponglab PRIVATE lib/SFML/include)
 
 # Link with SFML libraries
-target_link_libraries(lab_1 PRIVATE sfml-graphics sfml-window sfml-system)
+target_link_libraries(ponglab PRIVATE sfml-graphics sfml-window sfml-system)
