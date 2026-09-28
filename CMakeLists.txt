@@ -16,15 +16,16 @@ add_executable(space_invaders invaders_main.cpp)
 # Provide the include directories for SFML
 target_include_directories(space_invaders PRIVATE lib/SFML/include)
 
-set_target_properties(space_invaders 
+set_target_properties(space_invaders
     PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY
-    ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$(Configuration)
+    "$<TARGET_FILE_DIR:space_invaders>"
 )
 
-add_custom_target(copy_resources ALL COMMAND ${CMAKE_COMMAND} 
-  -E copy_directory
+# Copy res/ next to the exe after every build
+add_custom_command(TARGET space_invaders POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${PROJECT_SOURCE_DIR}/res"
-    ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIGURATION>/res
+    "$<TARGET_FILE_DIR:space_invaders>/res"
 )
 # Link with SFML libraries
 target_link_libraries(space_invaders PRIVATE sfml-graphics sfml-window sfml-system)
