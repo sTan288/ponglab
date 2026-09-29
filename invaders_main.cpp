@@ -1,31 +1,23 @@
 #include <SFML/Graphics.hpp>
-#include <iostream>
+#include "game_parameters.hpp"
+#include "game_system.hpp"
 
 //main.cpp
 // NOTE: sf::Texture must not be a global in SFML 2.x — its constructor touches
 // SFML's OpenGL context machinery, which isn't initialised yet during static
 // initialisation, and the program crashes before main() runs.
+// That's why GameSystem only keeps a pointer to the spritesheet and creates it in init().
 
-void init(sf::Texture& spritesheet, sf::Sprite& invader) {
-    if (!spritesheet.loadFromFile("res/invaders_sheet.png")) {
-        std::cerr << "Failed to load spritesheet!" << std::endl;
-    }
-    invader.setTexture(spritesheet);
-    invader.setTextureRect(sf::IntRect(0, 0, 32, 32));
-}
-
-void render(sf::RenderWindow& window, const sf::Sprite& invader) {
-    window.draw(invader);
-}
+using param = Parameters;
+using gs = GameSystem;
 
 int main() {
-    std::cout << "start" << std::endl;
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Space Invaders");
+    sf::RenderWindow window(sf::VideoMode(param::game_width, param::game_height), "Space Invaders");
+    window.setFramerateLimit(60);
 
-    sf::Texture spritesheet;
-    sf::Sprite invader;
-    init(spritesheet, invader);
+    gs::init();
 
+    sf::Clock clock;
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -33,12 +25,17 @@ int main() {
                 window.close();
             }
         }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+            window.close();
+
+        const float dt = clock.restart().asSeconds();
+        gs::update(dt);
 
         window.clear();
-        render(window, invader);
+        gs::render(window);
         window.display();
-        sf::sleep(sf::seconds(1.f / 60.f));
     }
 
+    gs::clean();
     return 0;
 }

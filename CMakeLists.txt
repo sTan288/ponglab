@@ -11,7 +11,12 @@ set(SFML_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(lib/SFML)
 
 # Create the executable target
-add_executable(space_invaders invaders_main.cpp)
+add_executable(space_invaders
+    invaders_main.cpp
+    game_system.cpp
+    ship.cpp
+    bullet.cpp
+)
 
 # Provide the include directories for SFML
 target_include_directories(space_invaders PRIVATE lib/SFML/include)
