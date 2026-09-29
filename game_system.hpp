@@ -5,20 +5,28 @@
 #include <vector>
 #include "ship.hpp"
 
+// GameSystem is the "brain" of the game: it owns the shared data and runs the main steps.
+// Everything is static, so there is never a GameSystem object: we call GameSystem::init() etc.
+// It behaves like global variables/functions, but they are kept inside a scope (the struct).
+// Other files usually write "using gs = GameSystem;" and then "gs::ships".
 struct GameSystem{
-    //The "global" variables go here
-    //sf::Texture must not be constructed before main() in SFML 2.x, so we only hold a pointer
-    //and create the texture in init().
+    //---------------------------------------------------------------- shared data
+    //The picture with all the sprites. sf::Texture must not be constructed before main() in SFML 2.x,
+    //so we only hold a pointer here (empty at start-up) and create the texture in init().
     static std::shared_ptr<sf::Texture> spritesheet;
-    static std::vector<std::shared_ptr<Ship>> ships; //vector of shared pointers to Ships. ships[0] is the player
 
-    //game system functions
-    static void init();
-    static void reset();
-    static void clean();
-    static void update(const float &dt);
-    static void render(sf::RenderWindow &window);
+    //Every ship of the game. ships[0] is ALWAYS the player, all the others are invaders.
+    //It stores pointers to the base class Ship, so it can hold Players and Invaders together
+    //(an abstract class like Ship can't be stored directly, only through pointers).
+    static std::vector<std::shared_ptr<Ship>> ships;
+
+    //---------------------------------------------------------------- game system functions
+    static void init();                           //called once at start: loads the texture, then reset()
+    static void reset();                          //(re)builds the level: player, invaders, bullets
+    static void clean();                          //called once at the end: frees the memory
+    static void update(const float &dt);          //called every frame: moves everything (dt = seconds since last frame)
+    static void render(sf::RenderWindow &window); //called every frame: draws everything
 
 private:
-    static float _game_over_timer; //counts down once the game is over, then the game restarts
+    static float _game_over_timer; //counts up once the game is over, when it passes game_over_delay the game restarts
 };
