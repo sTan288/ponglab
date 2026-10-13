@@ -164,6 +164,19 @@ LevelSystem::Tile LevelSystem::get_tile_at(sf::Vector2f v) {
   return get_tile(sf::Vector2i(a / (_tile_size)));
 }
 
+std::vector<sf::Vector2i> LevelSystem::find_tiles(LevelSystem::Tile type) {
+  std::vector<sf::Vector2i> ret;
+  //обходим всю сетку и запоминаем координаты (столбец, строка) всех клеток нужного типа
+  for (int y = 0; y < _height; ++y) {
+    for (int x = 0; x < _width; ++x) {
+      if (_tiles[(y * _width) + x] == type) { //та же формула 2D -> 1D, что и в get_tile
+        ret.push_back({x, y});
+      }
+    }
+  }
+  return ret;
+}
+
 void LevelSystem::render(sf::RenderWindow &window) {
   //просто рисуем все заранее построенные прямоугольники
   for (size_t i = 0; i < _sprites.size(); ++i) {

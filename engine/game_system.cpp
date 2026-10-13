@@ -1,5 +1,7 @@
 //game_system.cpp
 #include "game_system.hpp"
+#include "renderer.hpp"
+#include <algorithm> //std::min
 
 //Статические поля в .hpp только ОБЪЯВЛЕНЫ, а здесь их нужно один раз ОПРЕДЕЛИТЬ,
 //иначе линкер выдаст ошибку "unresolved external symbol".
@@ -7,23 +9,17 @@ std::shared_ptr<Scene> GameSystem::_active_scene;
 
 //---------------------------------------------------------------- Scene
 
+//Сцена сама ничего не перебирает — она просто передаёт работу своему менеджеру сущностей
 void Scene::update(const float &dt){
-  //Полиморфизм: ent — указатель на Entity, но update() виртуальная,
-  //поэтому для игрока вызовется Player::update()
-  for(std::shared_ptr<Entity> &ent: _entities){
-    ent->update(dt);
-  }
+  _entities.update(dt);
 }
 
-void Scene::render(sf::RenderWindow &window){
-  //то же самое для отрисовки: у каждой сущности своя render()
-  for(std::shared_ptr<Entity> &ent: _entities){
-    ent->render(window);
-  }
+void Scene::render(){
+  _entities.render();
 }
 
 void Scene::unload(){
-  _entities.clear(); //очищаем список, shared_ptr сами освобождают память сущностей
+  _entities.list.clear(); //очищаем список, shared_ptr сами освобождают память сущностей
 }
 
 //---------------------------------------------------------------- GameSystem
@@ -32,14 +28,17 @@ void GameSystem::start(unsigned int width, unsigned int height,
                        const std::string& name, const float &time_step){
   //создаём окно нужного размера с заголовком name
   sf::RenderWindow window(sf::VideoMode(width, height), name);
+  //отдаём окно Renderer-у: дальше рисует только он
+  Renderer::initialise(window);
   _init();
   sf::Event event;
   sf::Clock clock; //часы: считают время между двумя кадрами
   //Игровой цикл: каждый кадр = события -> обновление -> отрисовка
   while(window.isOpen()){
     //dt = сколько секунд прошло с прошлого кадра (restart() ещё и сбрасывает часы)
-    //скорости у нас в px/сек, поэтому "скорость * dt" = сколько пройти за этот кадр
-    const float dt = clock.restart().asSeconds();
+    //Ограничиваем dt сверху (0.05 с = 20 FPS): если окно "подвисло" (например, его тащат мышкой),
+    //dt был бы огромным и за один шаг персонажи перепрыгнули бы через стену.
+    const float dt = std::min(clock.restart().asSeconds(), 0.05f);
     //1. события: нажали крестик окна -> выходим
     while (window.pollEvent(event)) {
       if (event.type == sf::Event::Closed) {
@@ -48,13 +47,18 @@ void GameSystem::start(unsigned int width, unsigned int height,
         return;
       }
     }
-    //Escape тоже закрывает игру
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) {
-      window.close();
-    }
     window.clear();    //стираем прошлый кадр
-    _update(dt);       //2. двигаем всё
-    _render(window);   //3. рисуем всё
+    //sf::Keyboard::isKeyPressed читает клавиатуру ГЛОБАЛЬНО — даже если ты печатаешь в другом окне.
+    //Поэтому клавиши и обновление игры работают только когда окно игры активно (в фокусе),
+    //иначе игра стоит на паузе и Esc, нажатый в другой программе, её не закроет.
+    if (window.hasFocus()) {
+      //Escape закрывает игру
+      if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) {
+        window.close();
+      }
+      _update(dt);     //2. двигаем всё
+    }
+    _render();         //3. собираем очередь и рисуем её (рисуем всегда, даже на паузе)
     sf::sleep(sf::seconds(time_step)); //небольшая пауза, чтобы не грузить процессор на 100%
     //показываем нарисованный кадр на экране (ждём Vsync)
     window.display();
@@ -64,11 +68,12 @@ void GameSystem::start(unsigned int width, unsigned int height,
 }
 
 void GameSystem::clean(){
-  //выгружаем активную сцену и "отпускаем" указатель на неё
+  //выгружаем активную сцену, "отпускаем" указатель на неё и чистим очередь Renderer-а
   if (_active_scene) {
     _active_scene->unload();
   }
   _active_scene.reset();
+  Renderer::shutdown();
 }
 
 void GameSystem::reset(){
@@ -77,6 +82,10 @@ void GameSystem::reset(){
     _active_scene->unload();
     _active_scene->load();
   }
+}
+
+std::shared_ptr<Scene> GameSystem::get_active_scene(){
+  return _active_scene;
 }
 
 void GameSystem::set_active_scene(const std::shared_ptr<Scene>& act_sc){
@@ -89,14 +98,18 @@ void GameSystem::_init(){
 }
 
 void GameSystem::_update(const float &dt){
-  //if (_active_scene) — проверка, что сцена вообще задана (указатель не пустой)
+  //сначала логика активной сцены, потом обновление Renderer-а
   if (_active_scene) {
     _active_scene->update(dt);
   }
+  Renderer::update(dt);
 }
 
-void GameSystem::_render(sf::RenderWindow &window){
+void GameSystem::_render(){
+  //1. активная сцена кладёт в очередь всё, что нужно нарисовать
   if (_active_scene) {
-    _active_scene->render(window);
+    _active_scene->render();
   }
+  //2. Renderer рисует всю очередь разом
+  Renderer::render();
 }

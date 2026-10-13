@@ -40,6 +40,8 @@ public:
  static float get_tile_size();  //размер клетки в пикселях
  //Координата на экране левого верхнего угла клетки старта
  static sf::Vector2f get_start_position();
+ //Все клетки сетки заданного типа (например все ENEMY — где появляются призраки)
+ static std::vector<sf::Vector2i> find_tiles(Tile);
 
 protected:
  //Уровень двумерный, но хранится в ОДНОМЕРНОМ массиве (строки идут друг за другом).

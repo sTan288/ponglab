@@ -1,39 +1,58 @@
 //scenes.hpp
 #pragma once
-#include <string>
 #include "game_system.hpp"
 
 // Все сцены игры лежат в этом файле.
+// Переменные, которые раньше лежали бы глобально в main.cpp, теперь —
+// приватные поля той сцены, которой они нужны.
 
-// MazeScene — сцена лабиринта: уровень (его рисует LevelSystem) + игрок.
-// Когда игрок доходит до финиша — грузим следующий лабиринт или показываем экран победы.
-// Наследуется от Scene и переопределяет её функции.
-class MazeScene: public Scene{
+// MenuScene — главное меню. Space -> начать игру.
+class MenuScene : public Scene {
+private:
+  sf::Text text; //надпись "Almost Pacman"
+  sf::Text hint; //подсказка "Press SPACE to play"
+  sf::Font font; //шрифт надписей (должен жить, пока живут тексты, поэтому он поле класса)
+
 public:
-  MazeScene() = default;
+  MenuScene() = default;
   void update(const float &dt) override;
-  void render(sf::RenderWindow &window) override;
-  void load() override;                           //создаёт игрока и загружает лабиринт
-  void reset();                                   //загружает файл _file_path и ставит игрока на старт
-  void set_file_path(const std::string &file_path); //какой лабиринт загружать
-private:
-  std::string _file_path; //путь к .txt файлу текущего лабиринта
+  void render() override;
+  void load() override; //загружает шрифт и настраивает тексты
 };
 
-// EndScene — экран победы: просто надпись в центре окна.
-class EndScene: public Scene{
+// GameScene — сама игра: уровень, pacman, призраки, еда, счёт.
+// Tab -> назад в меню.
+class GameScene : public Scene {
+private:
+  sf::Text text;        //строка со счётом внизу экрана
+  sf::Font font;        //шрифт этой строки
+  sf::Clock scoreClock; //сколько секунд длится текущий раунд
+  void respawn();       //всё с начала: позиции, скорости, еда, счёт
+
+  //Быстрый доступ к pacman-у и призракам (они же лежат и в _entities, но так удобнее,
+  //например, для проверки столкновений — не надо искать их в общем списке)
+  std::shared_ptr<Entity> _player;
+  std::vector<std::shared_ptr<Entity>> _ghosts;
+
+  //Еда — в отдельном менеджере: её много, и она не должна "есть" саму себя
+  EntityManager _nibbles;
+  //создать одну точку еды в клетке pos (big = большая синяя)
+  std::shared_ptr<Entity> _make_nibble(const sf::Vector2i &pos, bool big);
+
+  int _score = 0;      //очки в текущем раунде
+  int _high_score = 0; //рекорд (хранится в файле, переживает перезапуск игры)
+  void _save_high_score(); //обновить рекорд, если текущий счёт больше, и записать в файл
+
 public:
-  EndScene() = default;
-  void load() override;                           //загружает шрифт и настраивает текст
-  void render(sf::RenderWindow &window) override; //рисует текст
-private:
-  sf::Text win_text; //сама надпись
-  sf::Font font;     //шрифт надписи (должен жить, пока жив текст, поэтому он поле класса)
+  GameScene() = default;
+  void update(const float &dt) override;
+  void render() override;
+  void load() override;
 };
 
-// Все сцены игры в одном месте, доступны из любого файла: Scenes::maze, Scenes::end.
+// Все сцены игры в одном месте, доступны из любого файла: Scenes::menu, Scenes::game.
 // static -> поля принадлежат структуре, объект Scenes создавать не нужно.
 struct Scenes{
-  static std::shared_ptr<Scene> maze;
-  static std::shared_ptr<Scene> end;
+  static std::shared_ptr<Scene> menu;
+  static std::shared_ptr<Scene> game;
 };
